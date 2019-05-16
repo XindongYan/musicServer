@@ -267,7 +267,10 @@ module.exports = {
       ctx.body = {
         code: 200,
         msg: '注册成功',
-        user
+        user: {
+          avatar: 'http://127.0.0.1:3000' + user.avatar,
+          id: user._id,
+        }
       }
     } catch (error) {
       console.log(error);
