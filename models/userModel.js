@@ -8,6 +8,7 @@ let userSchema = new Schema({
     likes: { type: Array, default: [] }, // 喜欢的歌, [{ name: '', score: 7.9, cover: '', source: '', commit: '' }]
     commit: { type: Array, default: [] }, //评论
     type: { type: String, default: 'user' }, // master or user
+    enable: { type: Boolean, default: true }
 }, {
     timestamps: true
 });

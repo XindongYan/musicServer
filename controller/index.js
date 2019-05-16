@@ -32,6 +32,51 @@ module.exports = {
     };
   },
 
+  searchMusic: async (ctx, next) => {
+    const { name } = ctx.params;
+    let music = void 0;
+
+    try {
+      if (!name) {
+        music = await musicModel.find({});
+      } else {
+        music = await musicModel.find({ name: { $regex: name } }).exec();
+      }
+      ctx.body = {
+        code: 200,
+        music
+      }
+    } catch (error) {
+      ctx.body = {
+        code: 500,
+        msg: error.message
+      }
+    }
+  },
+
+  freeze: async (ctx, next) => {
+    const { id } = JSON.parse(ctx.params);
+
+    try {
+      let user = await userModel.findOneAndUpdate({ _id: id, enable: true }, { $set: { enable: false } });
+      if (!user) {
+        user = await userModel.findOneAndUpdate({ _id: id, enable: false }, { $set: { enable: true } });
+        if (!user) {
+          throw '用户数据错误'
+        }
+      }
+      ctx.body = {
+        code: 200,
+        msg: '设置成功'
+      }
+    } catch (error) {
+      ctx.body = {
+        code: 500,
+        msg: error.message
+      }
+    }
+  },
+
   commit_list: async (ctx, next) => {
     let { id } = JSON.parse(ctx.params);
 
@@ -56,7 +101,7 @@ module.exports = {
     console.log(score);
 
     try {
-      await userModel.findByIdAndUpdate({ _id: id }, { $push: { commit: { score: score, commit: description, name: name } } });
+      await userModel.findByIdAndUpdate({ _id: id, enable: true }, { $push: { commit: { score: score, commit: description, name: name } } });
       ctx.body = {
         code: 200,
         msg: '添加成功'
@@ -98,7 +143,7 @@ module.exports = {
       let music = await musicModel.findById({ _id: id }).exec();
       music = music.toObject();
 
-      await userModel.findByIdAndUpdate({ _id: ctx.session.user.id }, { $push: { likes: music } }, { new: true });
+      await userModel.findByIdAndUpdate({ _id: ctx.session.user.id, enable: true }, { $push: { likes: music } }, { new: true });
       await musicModel.findByIdAndUpdate({ _id: id }, { $push: { likes: ctx.session.user.id } })
 
       ctx.body = {
@@ -114,9 +159,67 @@ module.exports = {
   },
 
   users: async (ctx, next) => {
-    const users = await userModel.find({});
+    const user = await userModel.findById({ _id: ctx.session.user.id }, 'username').exec();
+    console.log(user);
+    if (user.username !== 'admin') {
+      ctx.body = {
+        code: 401
+      }
+    } else {
+      const users = await userModel.find({}).exec()
+      ctx.body = {
+        code: 200,
+        users
+      }
+    }
+  },
 
-    ctx.body = users
+  searchUser: async (ctx, next) => {
+    const { username } = ctx.params;
+    let user = void 0;
+
+    try {
+      if (username) {
+        user = await userModel.findOne({ username }).exec();
+      } else {
+        user = await userModel.find({ }).exec();
+      }
+      ctx.body = {
+        code: 200,
+        user
+      }
+    } catch (error) {
+      ctx.body = {
+        code: 500,
+        msg: error.message
+      }
+    }
+  },
+
+  TaMessage: async (ctx, next) => {
+    const { id } = ctx.params;
+
+    try {
+      const user = await userModel.findById({ _id: id }, 'likes commit').exec();
+      const music = await musicModel.find({ uploader: id }).exec();
+
+      ctx.body = {
+        code: 200,
+        user, music
+      }
+    } catch (error) {
+      ctx.body = {
+        code: 500,
+        msg: error.message
+      }
+    }
+  },  
+
+  signOut: async (ctx, next) => {
+    ctx.session = null;
+    ctx.body = {
+      code: 200
+    }
   },
 
   login: async (ctx, next) => {
@@ -128,7 +231,7 @@ module.exports = {
       .digest('hex');
 
     try {
-      let user = await userModel.findOne({ username, password: hash });
+      let user = await userModel.findOne({ username, password: hash, enable: true });
       if (!user) {
         throw '登录信息有误'
       };
@@ -163,7 +266,8 @@ module.exports = {
       ctx.session.user = { id: user._id, avatar: 'http://127.0.0.1:3000' + user.avatar };
       ctx.body = {
         code: 200,
-        msg: '注册成功'
+        msg: '注册成功',
+        user
       }
     } catch (error) {
       console.log(error);
@@ -236,13 +340,17 @@ module.exports = {
         if (!result) {
           throw '存储失败'
         }
+        ctx.body = {
+          _id: music._id
+        }
       } catch (error) {
-        throw error
+        console.log(error.message);
+        ctx.body = {
+          code: 500,
+          msg: error.message
+        }
       };
-
-      ctx.body = {
-        _id: music._id
-      }
+      
     }
   }
 

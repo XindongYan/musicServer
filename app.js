@@ -61,21 +61,37 @@ userRouter1.all('/api/uploadImg', upload.single('image'), index.avatar);
 
 app.use(userRouter1.routes());
 
-// app.use(async function (ctx, next) {
-//   console.log(ctx.session);
-//   if (!ctx.session || !ctx.session.user) {
-//       ctx.body = {
-//           code: 401
-//       }
-//   } else {
-//       await next();
-//   }
-// });
+app.use(async function (ctx, next) {
+  console.log('65');
+  console.log(ctx.session);
+  if (!ctx.session || !ctx.session.user) {
+      ctx.body = {
+          code: 401
+      }
+  } else {
+      await next();
+  }
+});
 
 const router = new Router();
 
+
+// 退出登录
+router.all('/api/signOut', index.signOut);
+
+// 查找音乐
+router.all('/api/searchMusic', index.searchMusic);
+
+// 封禁用户
+router.all('/api/freeze', index.freeze);
+
 // 取消喜欢
 router.all('/api/removeLike', index.removeLike);
+
+// 获取用户信息
+router.all('/api/taMessage', index.TaMessage);
+
+router.all('/api/search/user', index.searchUser);
 
 // 获取评分
 router.all('/api/commit/list', index.commit_list);
